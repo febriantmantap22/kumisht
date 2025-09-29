@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>KUMIS - Kamus Digital Mini Sejarah</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin:0; padding:0; background:#f4f4f4; color:#333; }
+    header { background:#4b6584; color:#fff; padding:20px; text-align:center; }
+    h1 { margin:0; font-size:28px; }
+
+    /* 🔍 Search */
+    .search-container { text-align:center; margin:20px 0; }
+    #searchBar { width:80%; max-width:500px; padding:12px 16px; font-size:16px; border:2px solid #444; border-radius:12px; }
+
+    /* 📂 Filter */
+    .filter-container { text-align:center; margin:10px 0; }
+    .filter-btn {
+      padding:10px 15px; margin:5px; border:none; border-radius:8px; cursor:pointer;
+      background:#778ca3; color:#fff; font-size:14px;
+    }
+    .filter-btn:hover { background:#4b6584; }
+
+    .container { display:flex; flex-wrap:wrap; justify-content:center; padding:20px; }
+    .card {
+      background:white; border-radius:12px; box-shadow:0 4px 6px rgba(0,0,0,0.1);
+      margin:10px; padding:20px; width:220px; cursor:pointer; transition:transform 0.2s;
+    }
+    .card:hover { transform:scale(1.05); }
+    .card h3 { margin-top:0; }
+
+    /* Modal */
+    .modal { display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.7); }
+    .modal-content { background:#fff; margin:5% auto; padding:20px; border-radius:12px; width:90%; max-width:600px; text-align:center; }
+    .modal-content img { max-width:100%; margin-bottom:15px; border-radius:10px; }
+    .close { color:#aaa; float:right; font-size:28px; font-weight:bold; cursor:pointer; }
+    .close:hover { color:#000; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>KUMIS - Kamus Digital Mini Sejarah</h1>
+</header>
+
+<!-- 🔍 Search -->
+<div class="search-container">
+  <input type="text" id="searchBar" placeholder="Cari istilah sejarah..." onkeyup="searchKumis()"/>
+</div>
+
+<!-- 📂 Filter -->
+<div class="filter-container">
+  <button class="filter-btn" onclick="filterCategory('all')">Semua</button>
+  <button class="filter-btn" onclick="filterCategory('Tokoh')">Tokoh</button>
+  <button class="filter-btn" onclick="filterCategory('Organisasi')">Organisasi</button>
+  <button class="filter-btn" onclick="filterCategory('Peristiwa')">Peristiwa</button>
+  <button class="filter-btn" onclick="filterCategory('Kebijakan')">Kebijakan</button>
+  <button class="filter-btn" onclick="filterCategory('Singkatan')">Singkatan</button>
+</div>
+
+<!-- 📦 Konten -->
+<div class="container" id="cardContainer"></div>
+
+<!-- Modal -->
+<div id="myModal" class="modal">
+  <div class="modal-content">
+    <span class="close" onclick="closeModal()">&times;</span>
+    <img id="modalImg" src="" alt="Gambar Istilah">
+    <h2 id="modalTitle"></h2>
+    <p id="modalText"></p>
+  </div>
+</div>
+
+<script>
+  // 📚 Data KUMIS (34 entri)
+  const data = [
+    // Tokoh
+    {title:"Bung Karno", category:"Tokoh", text:"Ir. Soekarno adalah Proklamator dan Presiden pertama Republik Indonesia.", img:"img/bungkarno.jpg"},
+    {title:"Bung Hatta", category:"Tokoh", text:"Mohammad Hatta adalah Proklamator dan Wakil Presiden pertama RI.", img:"img/bunghatta.jpg"},
+    {title:"Ki Hajar Dewantara", category:"Tokoh", text:"Bapak Pendidikan Nasional, pendiri Taman Siswa.", img:"img/kihajar.jpg"},
+    {title:"Jenderal Sudirman", category:"Tokoh", text:"Panglima Besar TNI pertama yang memimpin perang gerilya.", img:"img/sudirman.jpg"},
+    {title:"R.A. Kartini", category:"Tokoh", text:"Tokoh emansipasi perempuan Indonesia.", img:"img/kartini.jpg"},
+    {title:"Cut Nyak Dien", category:"Tokoh", text:"Pahlawan perempuan dari Aceh yang melawan kolonial Belanda.", img:"img/cutnyakdien.jpg"},
+
+    // Organisasi
+    {title:"Budi Utomo", category:"Organisasi", text:"Organisasi modern pertama di Indonesia, berdiri 1908.", img:"img/budiutomo.jpg"},
+    {title:"Sarekat Islam", category:"Organisasi", text:"Organisasi massa Islam terbesar awal abad 20.", img:"img/sarekatislam.jpg"},
+    {title:"Indische Partij", category:"Organisasi", text:"Partai politik pertama yang memperjuangkan kemerdekaan.", img:"img/indischepartij.jpg"},
+    {title:"PETA", category:"Organisasi", text:"Pembela Tanah Air, organisasi militer bentukan Jepang.", img:"img/peta.jpg"},
+    {title:"BPUPKI", category:"Organisasi", text:"Badan Penyelidik Usaha-usaha Persiapan Kemerdekaan Indonesia.", img:"img/bpupki.jpg"},
+    {title:"PPKI", category:"Organisasi", text:"Panitia Persiapan Kemerdekaan Indonesia, melanjutkan BPUPKI.", img:"img/ppki.jpg"},
+
+    // Peristiwa
+    {title:"Sumpah Pemuda", category:"Peristiwa", text:"Ikrar pemuda 28 Oktober 1928: Satu nusa, bangsa, bahasa.", img:"img/sumpahpemuda.jpg"},
+    {title:"Proklamasi Kemerdekaan", category:"Peristiwa", text:"Dibacakan 17 Agustus 1945 oleh Soekarno-Hatta.", img:"img/proklamasi.jpg"},
+    {title:"Perang Diponegoro", category:"Peristiwa", text:"Perang besar melawan Belanda (1825–1830).", img:"img/diponegoro.jpg"},
+    {title:"Pertempuran Surabaya", category:"Peristiwa", text:"Pertempuran 10 November 1945 melawan pasukan Inggris.", img:"img/surabaya.jpg"},
+    {title:"Reformasi 1998", category:"Peristiwa", text:"Gerakan mahasiswa yang menumbangkan Orde Baru.", img:"img/reformasi.jpg"},
+
+    // Kebijakan
+    {title:"Politik Etis", category:"Kebijakan", text:"Kebijakan Belanda (1901) dengan program irigasi, edukasi, emigrasi.", img:"img/politiketis.jpg"},
+    {title:"Orde Baru", category:"Kebijakan", text:"Masa pemerintahan Indonesia di bawah Presiden Soeharto (1966–1998).", img:"img/ordebaru.jpg"},
+    {title:"Revolusi Hijau", category:"Kebijakan", text:"Program peningkatan produksi pertanian era Orde Baru.", img:"img/revolusihijau.jpg"},
+    {title:"Desentralisasi", category:"Kebijakan", text:"Kebijakan otonomi daerah pasca reformasi 1998.", img:"img/desentralisasi.jpg"},
+    {title:"Swasembada Pangan", category:"Kebijakan", text:"Program pemerintah untuk mandiri pangan.", img:"img/swasembada.jpg"},
+
+    // Singkatan
+    {title:"G30S/PKI", category:"Singkatan", text:"Gerakan 30 September 1965 oleh PKI.", img:"img/g30s.jpg"},
+    {title:"Dwikora", category:"Singkatan", text:"Dwi Komando Rakyat, instruksi konfrontasi Malaysia.", img:"img/dwikora.jpg"},
+    {title:"LBB", category:"Singkatan", text:"Liga Bangsa-Bangsa, cikal bakal PBB.", img:"img/lbb.jpg"},
+    {title:"KAA", category:"Singkatan", text:"Konferensi Asia-Afrika di Bandung tahun 1955.", img:"img/kaa.jpg"},
+    {title:"PBB", category:"Singkatan", text:"Perserikatan Bangsa-Bangsa, organisasi internasional.", img:"img/pbb.jpg"},
+    {title:"ASEAN", category:"Singkatan", text:"Asosiasi Bangsa-Bangsa Asia Tenggara (1967).", img:"img/asean.jpg"},
+    {title:"APEC", category:"Singkatan", text:"Asia-Pacific Economic Cooperation, forum ekonomi.", img:"img/apec.jpg"}
+  ];
+
+  // 🚀 Render Card
+  function renderCards(filter="all") {
+    const container = document.getElementById("cardContainer");
+    container.innerHTML = "";
+    data.forEach(item => {
+      if(filter==="all" || item.category===filter){
+        let card = document.createElement("div");
+        card.className = "card";
+        card.setAttribute("onclick", `openModal('${item.title}')`);
+        card.innerHTML = `<h3>${item.title}</h3><p>${item.category}</p>`;
+        container.appendChild(card);
+      }
+    });
+  }
+
+  // 🔍 Search
+  function searchKumis() {
+    let input = document.getElementById('searchBar').value.toLowerCase();
+    let cards = document.getElementsByClassName('card');
+    for (let i = 0; i < cards.length; i++) {
+      let text = cards[i].innerText.toLowerCase();
+      cards[i].style.display = text.includes(input) ? "" : "none";
+    }
+  }
+
+  // 📂 Filter
+  function filterCategory(cat){ renderCards(cat==="all" ? "all" : cat); }
+
+  // 🔎 Modal
+  function openModal(title) {
+    const item = data.find(d => d.title===title);
+    document.getElementById("myModal").style.display = "block";
+    document.getElementById("modalTitle").innerText = item.title;
+    document.getElementById("modalText").innerText = item.text;
+
+    let modalImg = document.getElementById("modalImg");
+    modalImg.onerror = function(){ this.src = "img/default.jpg"; };
+    modalImg.src = item.img;
+  }
+  function closeModal(){ document.getElementById("myModal").style.display = "none"; }
+  window.onclick = function(e){ if(e.target==document.getElementById("myModal")) closeModal(); }
+
+  // 🚀 Init
+  renderCards();
+</script>
+
+</body>
+</html>
